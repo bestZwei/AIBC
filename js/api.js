@@ -61,17 +61,23 @@ class APIService {
             this.logDebug('错误: OpenAI配置不完整');
             throw new Error('OpenAI配置不完整，请在设置中配置API URL和Key');
         }
+        
         // 只用默认配置
         const model = this.openaiModel;
+        
+        // 修改请求体，简化并适应可能的API要求
         const requestBody = {
             model: model,
             messages: messages,
             temperature: 0.7,
             max_tokens: 1000
         };
+        
         // 直接使用完整API地址
         const apiUrl = this.openaiApiUrl;
         this.logDebug(`API URL: ${apiUrl}`);
+        this.logDebug(`模型: ${model}`);
+        this.logDebug(`请求体: ${JSON.stringify(requestBody).substring(0, 200)}...`);
         
         // 实现带指数退避的重试机制
         let attempt = 0;
@@ -79,78 +85,161 @@ class APIService {
         
         while (attempt < this.fetchRetryCount) {
             try {
-                this.logDebug(`正在发送请求到API (模型: ${this.openaiModel})，尝试 ${attempt + 1}/${this.fetchRetryCount}`);
+                this.logDebug(`正在发送请求到API，尝试 ${attempt + 1}/${this.fetchRetryCount}`);
                 
-                // 尝试使用fetch API发送请求
+                // 显式开启 CORS 和严格 referrerPolicy
                 const response = await this._fetchWithTimeout(apiUrl, {
                     method: 'POST',
+                    mode: 'cors',                    // <-- 强制 CORS 模式
+                    referrerPolicy: 'strict-origin-when-cross-origin', // <-- 同源策略
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.openaiApiKey}`
+                        'Authorization': `Bearer ${this.openaiApiKey}`,
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(requestBody)
-                }, 30000); // 30秒超时
+                }, 60000);
+
+                this.logDebug(`收到响应状态: ${response.status} ${response.statusText}`);
                 
                 if (!response.ok) {
-                    let errorMessage = `API错误: ${response.status} ${response.statusText}`;
+                    // 打印完整响应文本，便于排查 500 错误
+                    let errorText = await response.text().catch(()=>'[无法获取响应正文]');
+                    this.logDebug(`错误响应正文: ${errorText}`);
+                    throw new Error(`API错误 ${response.status}: ${response.statusText}`);
+                }
+                
+                // 尝试以文本形式获取响应
+                let responseText;
+                try {
+                    responseText = await response.text();
+                    this.logDebug(`响应文本: ${responseText.substring(0, 200)}...`);
+                    
+                    // 尝试解析为JSON
+                    let data;
                     try {
-                        const errorData = await response.json();
-                        errorMessage = `API错误: ${errorData.error?.message || errorData.error || response.statusText}`;
-                    } catch (e) {
-                        // 如果无法解析JSON，使用默认错误消息
+                        data = JSON.parse(responseText);
+                        this.logDebug(`成功解析JSON响应`);
+                        
+                        // 处理OpenAI格式的响应
+                        if (data.choices && data.choices.length > 0) {
+                            if (data.choices[0].message && data.choices[0].message.content) {
+                                return data.choices[0].message.content;
+                            } else if (data.choices[0].text) {
+                                return data.choices[0].text;
+                            } else if (data.choices[0].content) {
+                                return data.choices[0].content;
+                            }
+                        }
+                        
+                        // 处理其他格式
+                        if (data.response) return data.response;
+                        if (data.content) return data.content;
+                        if (data.text) return data.text;
+                        if (data.message) return data.message;
+                        
+                        // 如果找不到任何有效内容，返回整个数据对象的字符串表示
+                        return `服务器返回: ${JSON.stringify(data).substring(0, 500)}`;
+                        
+                    } catch (jsonError) {
+                        // 如果不是有效的JSON，直接返回文本
+                        this.logDebug(`响应不是有效的JSON: ${jsonError.message}`);
+                        return responseText;
                     }
-                    this.logDebug(errorMessage);
-                    throw new Error(errorMessage);
+                } catch (textError) {
+                    this.logDebug(`无法获取响应文本: ${textError.message}`);
+                    return "服务器返回了响应，但无法获取内容";
                 }
-                
-                const data = await response.json();
-                this.logDebug('成功从API获取响应');
-                
-                // 处理OpenAI格式的响应
-                if (data.choices && data.choices.length > 0) {
-                    if (data.choices[0].message && data.choices[0].message.content) {
-                        return data.choices[0].message.content;
-                    } else if (data.choices[0].text) {
-                        return data.choices[0].text;
-                    }
-                }
-                
-                // 如果没有找到预期的响应格式，记录响应数据并抛出错误
-                this.logDebug(`意外的响应格式: ${JSON.stringify(data).substring(0, 200)}...`);
-                return `未能获取标准格式响应，但服务器返回了数据。这里是原始回复: ${JSON.stringify(data).substring(0, 100)}...`;
                 
             } catch (error) {
                 lastError = error;
                 attempt++;
+                this.logDebug(`请求失败: ${error.message}`);
                 
-                // 如果是网络错误（如Failed to fetch），记录并进行重试
-                const isNetworkError = error.message.includes('Failed to fetch') || 
+                // 确定是否要重试
+                const isRetryableError = error.message.includes('Failed to fetch') || 
                                       error.message.includes('NetworkError') ||
                                       error.message.includes('Network request failed') ||
-                                      error.message.includes('timeout');
+                                      error.message.includes('timeout') ||
+                                      error.message.includes('CORS') ||
+                                      error.message.includes('拒绝') ||
+                                      (error.message.includes('API错误') && (
+                                          error.message.includes('500') || 
+                                          error.message.includes('502') || 
+                                          error.message.includes('503') || 
+                                          error.message.includes('429')
+                                      ));
                 
-                if (isNetworkError && attempt < this.fetchRetryCount) {
-                    // 计算指数退避延迟
+                if (isRetryableError && attempt < this.fetchRetryCount) {
                     const delay = this.fetchRetryDelay * Math.pow(2, attempt - 1);
-                    this.logDebug(`网络请求失败，将在 ${delay}ms 后重试 (${attempt}/${this.fetchRetryCount}): ${error.message}`);
+                    this.logDebug(`将在 ${delay}ms 后重试 (${attempt}/${this.fetchRetryCount})`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     continue;
                 }
                 
-                this.logDebug(`API调用失败: ${error.message}`);
                 break;
+            }
+        }
+        
+        // 尝试简化请求内容后重试
+        if (lastError && lastError.message.includes('500')) {
+            this.logDebug('尝试使用简化消息格式再次请求');
+            try {
+                // 仅保留最后一条系统消息和用户消息
+                const simplifiedMessages = messages.filter(msg => 
+                    msg.role === 'user' || msg.role === 'system'
+                ).slice(-2);
+                
+                const backupRequestBody = {
+                    model: model,
+                    messages: simplifiedMessages,
+                    temperature: 0.7
+                };
+                
+                const response = await this._fetchWithTimeout(apiUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    referrerPolicy: 'strict-origin-when-cross-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.openaiApiKey}`
+                    },
+                    body: JSON.stringify(backupRequestBody)
+                }, 30000);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.choices && data.choices.length > 0) {
+                        if (data.choices[0].message && data.choices[0].message.content) {
+                            return data.choices[0].message.content;
+                        }
+                    }
+                } else {
+                    let errBody = await response.text().catch(()=>'[无法获取响应正文]');
+                    this.logDebug(`简化请求错误响应: ${errBody}`);
+                }
+            } catch (simplifiedError) {
+                this.logDebug(`简化请求也失败: ${simplifiedError.message}`);
             }
         }
         
         // 如果所有重试都失败，尝试使用备用方法请求API
         try {
-            this.logDebug(`尝试使用备用方法请求API...`);
-            const result = await this._fetchWithXMLHttpRequest(apiUrl, requestBody);
+            this.logDebug(`尝试使用XMLHttpRequest作为备用方法`);
+            const result = await this._fetchWithXMLHttpRequest(apiUrl, {
+                model: model,
+                messages: [
+                    {role: "system", content: "You are a helpful assistant."},
+                    {role: "user", content: "Please respond with a short greeting."}
+                ],
+                temperature: 0.5
+            });
             return result;
         } catch (xhrError) {
             // 如果备用方法也失败，抛出最初的错误
+            this.logDebug(`备用方法也失败: ${xhrError.message}`);
             console.error('API调用失败:', lastError);
-            throw lastError;
+            throw new Error(`无法连接到AI服务: ${lastError.message}\n\n这可能是因为服务器错误(500)。请稍后再试，或检查API配置是否正确。`);
         }
     }
     
