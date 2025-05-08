@@ -28,7 +28,6 @@ class APIService {
         this.openaiApiUrl = url || CONFIG.openai.defaultUrl;
         this.openaiApiKey = key || '';
         this.openaiModel = model || CONFIG.openai.defaultModel;
-        
         localStorage.setItem(CONFIG.openai.storageKey, JSON.stringify({
             url: this.openaiApiUrl,
             key: this.openaiApiKey,
@@ -62,26 +61,16 @@ class APIService {
             this.logDebug('错误: OpenAI配置不完整');
             throw new Error('OpenAI配置不完整，请在设置中配置API URL和Key');
         }
-        
-        // 构建请求体
+        // 只用默认配置
+        const model = this.openaiModel;
         const requestBody = {
-            model: this.openaiModel,
+            model: model,
             messages: messages,
             temperature: 0.7,
             max_tokens: 1000
         };
-        
-        // 确保URL以斜杠结尾
-        let apiUrl = this.openaiApiUrl;
-        if (!apiUrl.endsWith('/')) {
-            apiUrl += '/';
-        }
-        
-        // 如果URL不包含v1/chat/completions，添加它
-        if (!apiUrl.includes('v1/chat/completions')) {
-            apiUrl += 'v1/chat/completions';
-        }
-        
+        // 直接使用完整API地址
+        const apiUrl = this.openaiApiUrl;
         this.logDebug(`API URL: ${apiUrl}`);
         
         // 实现带指数退避的重试机制

@@ -30,9 +30,9 @@ const CONFIG = {
     
     // OpenAI API默认配置
     openai: {
-        defaultUrl: 'https://gemini-balance.neko.is-cool.dev/',
-        defaultKey: 'sk-411zwei5202',
-        defaultModel: 'gemini-2.5-flash-preview-04-17',
+        defaultUrl: 'https://qwen-api.neko.is-cool.dev/2025/v1/chat/completions',
+        defaultKey: 'sk-996icu',
+        defaultModel: 'qwen3-235b-a22b',
         storageKey: 'ai-tune-openai-config'
     },
     

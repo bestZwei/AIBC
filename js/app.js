@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const openaiApiUrlInput = document.getElementById('openai-api-url');
     const openaiApiKeyInput = document.getElementById('openai-api-key');
     const openaiModelSelect = document.getElementById('openai-model');
+    // 移除自定义模型输入框
+    // const customOpenaiModelInput = document.getElementById('custom-openai-model');
     const saveSettingsButton = document.getElementById('save-settings');
     
     // 提示词设置相关元素
@@ -106,6 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
         openaiApiUrlInput.value = apiService.openaiApiUrl;
         openaiApiKeyInput.value = apiService.openaiApiKey;
         openaiModelSelect.value = apiService.openaiModel;
+        // 移除自定义模型相关
+        // if (apiService.customOpenaiModel) {
+        //     customOpenaiModelInput.value = apiService.customOpenaiModel;
+        // } else {
+        //     customOpenaiModelInput.value = '';
+        // }
         
         // 如果使用的是默认设置，显示提示
         const isUsingDefaults = apiService.openaiApiUrl === CONFIG.openai.defaultUrl && 
@@ -120,8 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveSettings() {
         const url = openaiApiUrlInput.value.trim();
         const key = openaiApiKeyInput.value.trim();
-        const model = openaiModelSelect.value;
-        
+        let model = openaiModelSelect.value;
+        // 移除自定义模型相关
+        // const customModel = customOpenaiModelInput.value.trim();
+        // if (customModel) {
+        //     model = customModel;
+        // }
         apiService.saveOpenAIConfig(url, key, model);
         
         // 显示成功消息
