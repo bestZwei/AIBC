@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tune - AI广播电台</title>
+    <link rel="stylesheet" href="./styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边导航 -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>AI Tune</h1>
+                <p>您的AI广播电台</p>
+            </div>
+            
+            <div class="channels">
+                <h3>频道选择</h3>
+                <ul id="channel-list">
+                    <li data-channel="news" class="active"><i class="fas fa-newspaper"></i> AI新闻台</li>
+                    <li data-channel="story"><i class="fas fa-book"></i> AI故事台</li>
+                    <li data-channel="science"><i class="fas fa-atom"></i> AI科普台</li>
+                    <li data-channel="chat"><i class="fas fa-comments"></i> AI闲聊台</li>
+                    <li data-channel="interview"><i class="fas fa-microphone"></i> AI访谈台</li>
+                </ul>
+            </div>
+            
+            <div class="settings">
+                <h3>设置</h3>
+                <div class="setting-item">
+                    <label for="openai-api-url">OpenAI API URL:</label>
+                    <input type="text" id="openai-api-url" placeholder="https://api.openai.com/v1/chat/completions">
+                </div>
+                <div class="setting-item">
+                    <label for="openai-api-key">OpenAI API Key:</label>
+                    <input type="password" id="openai-api-key" placeholder="sk-...">
+                </div>
+                <div class="setting-item">
+                    <label for="openai-model">模型:</label>
+                    <select id="openai-model">
+                        <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash-preview-04-17</option>
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    </select>
+                </div>
+                <button id="save-settings">保存设置</button>
+                
+                <h3 class="mt-4">提示词设置</h3>
+                <div class="setting-item">
+                    <label for="prompt-channel">频道:</label>
+                    <select id="prompt-channel">
+                        <option value="news">新闻台</option>
+                        <option value="story">故事台</option>
+                        <option value="science">科普台</option>
+                        <option value="chat">闲聊台</option>
+                        <option value="interview">访谈台</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="prompt-type">提示词类型:</label>
+                    <select id="prompt-type">
+                        <option value="intro">频道介绍</option>
+                        <option value="segment">内容段落</option>
+                        <option value="userInteraction">用户互动</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="custom-prompt">自定义提示词:</label>
+                    <textarea id="custom-prompt" rows="5" placeholder="请输入自定义提示词..."></textarea>
+                </div>
+                <button id="save-prompt">保存提示词</button>
+                <button id="reset-prompt">重置为默认</button>
+                
+                <div class="setting-item mt-3">
+                    <label for="debug-info">调试信息:</label>
+                    <div id="debug-info" class="debug-box">无数据</div>
+                </div>
+                
+                <div class="network-status-container mt-3">
+                    <div class="connection-indicator">
+                        <span class="connection-status connecting" id="connection-status"></span>
+                        <span id="connection-text">检查网络...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="radio-display">
+                <div class="station-info">
+                    <div id="channel-icon"><i class="fas fa-newspaper"></i></div>
+                    <h2 id="current-channel">AI新闻台</h2>
+                    <div id="on-air" class="pulse">ON AIR</div>
+                </div>
+                
+                <div class="radio-screen">
+                    <div id="radio-animation">
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                        <div class="wave"></div>
+                    </div>
+                    
+                    <div class="now-playing">
+                        <h3>正在播放</h3>
+                        <div id="now-playing-text">连接中...</div>
+                    </div>
+                    
+                    <div class="hosts-display">
+                        <div class="host" id="host1">
+                            <div class="avatar"><i class="fas fa-user"></i></div>
+                            <div class="host-name">主播小美</div>
+                        </div>
+                        <div class="host" id="host2">
+                            <div class="avatar"><i class="fas fa-user"></i></div>
+                            <div class="host-name">主播小刚</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="playback-controls">
+                    <div class="control-button" id="play-pause">
+                        <i class="fas fa-play"></i>
+                    </div>
+                    <div class="control-button" id="next-segment">
+                        <i class="fas fa-forward"></i>
+                    </div>
+                    <div class="volume-control">
+                        <i class="fas fa-volume-up"></i>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="user-interaction">
+                <h3>与AI主播互动</h3>
+                <div class="interaction-history" id="interaction-history">
+                    <!-- 互动历史将在这里显示 -->
+                </div>
+                <div class="input-area">
+                    <input type="text" id="user-input" placeholder="输入您的问题或建议...">
+                    <button id="send-button"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="./js/config.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/audioManager.js"></script>
+    <script src="./js/contentGenerator.js"></script>
+    <script src="./js/loading.js"></script>
+    <script src="./js/network-monitor.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+</html>

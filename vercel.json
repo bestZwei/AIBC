@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "ai-tune",
+  "builds": [
+    { "src": "**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
