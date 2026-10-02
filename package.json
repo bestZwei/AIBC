@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "AIBC - AI Broadcast Center: 个人化 AI 电台，电台化的连续、可插话音频流",
+  "packageManager": "pnpm@12.2.1",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
