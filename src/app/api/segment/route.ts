@@ -32,9 +32,6 @@ const SegmentRequest = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const limited = checkRateLimit(req);
-  if (!limited.allowed) return limited.response;
-
   try {
     const body: unknown = await req.json();
     const parsed = SegmentRequest.safeParse(body);
@@ -47,6 +44,10 @@ export async function POST(req: NextRequest) {
     if (!station) {
       throw new AppError(404, `Unknown station "${stationId}"`);
     }
+
+    // 校验通过后再限流（限流依赖服务端 env）。
+    const limited = checkRateLimit(req);
+    if (!limited.allowed) return limited.response;
 
     const memory: ContextMemory = parsed.data.memory ?? createMemory();
     const system = buildSystemPrompt(station);

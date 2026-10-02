@@ -27,9 +27,6 @@ function cacheKey(input: { text: string; voice?: string; rate?: number; pitch?: 
 }
 
 export async function POST(req: NextRequest) {
-  const limited = checkRateLimit(req);
-  if (!limited.allowed) return limited.response;
-
   try {
     const body: unknown = await req.json();
     const parsed = TtsRequest.safeParse(body);
@@ -37,6 +34,10 @@ export async function POST(req: NextRequest) {
       throw new AppError(400, 'Invalid request body');
     }
     const input = parsed.data;
+
+    // 校验通过后再限流（限流依赖服务端 env）。
+    const limited = checkRateLimit(req);
+    if (!limited.allowed) return limited.response;
 
     const key = cacheKey(input);
     const cached = audioCache.get(key);
