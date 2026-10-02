@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AIBC · 个人 AI 电台
 
-## Getting Started
+> AI Broadcast Center —— 一个**电台化**的个人 AI 音频流：连续、被动、可插话。
+> 选一个频道，点播放，AI 主播就为你不间断地播，你随时能插话，它会接着回应。
 
-First, run the development server:
+这不是又一个「问答式语音助手」。AIBC 的护城河是**电台体验本身**：你不需要一直说话、不需要盯着屏幕，
+内容像广播一样一段接一段地流，你只在想插话时插一句。MVP 已跑通「选台 → 生成文本 → 合成语音 → 连续播放 → 插话回应」的完整闭环。
+
+---
+
+## 产品定位（一句话）
+
+**人人都有一个 24 小时不关机的个人 AI 电台。** 北极星指标：单次连续收听时长、用户自建频道数。
+详见 [docs/PRD.md](docs/PRD.md)。
+
+## 当前状态
+
+MVP（Stage 1）已完成并通过验证：
+
+- 5 个预设频道（新闻 / 故事 / 科普 / 闲聊 / 访谈），加权调度 + 上下文记忆
+- 服务端**平台代理 + 供应商适配层**：AI/TTS 可插拔，密钥只在服务端，绝不下发前端
+- 前端 Web Audio 队列连续播放、实时文本、频谱可视化、ON AIR、音量、深浅主题、听众插话
+- 领域核心 + 服务端 + 组件共 **35 个 Vitest 用例**；`lint / typecheck / test / build` 全绿；GitHub Actions CI
+
+尚未做（有意留到后续阶段）：频道创建 UI、账号与云同步、频道市场、社交、声音克隆、多人同步收听。见 [docs/ROADMAP.md](docs/ROADMAP.md)。
+
+## 快速开始
+
+前置：**Node 20+** 与 **pnpm**（`corepack enable` 即可按 `packageManager` 锁定版本）。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local   # 填入你的 AI / TTS 供应商配置
+pnpm dev                     # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开页面 → 左侧选一个频道 → 点 ▶ 播放。首段会有几秒延迟（生成文本 + 合成语音），之后连续播放。
+在底部「插话」框输入问题，下一段会优先回应。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> ⚠️ **需要可用的 AI 端点**：默认适配器指向公开测试端点，可能不稳定或需要你自己的 Key。
+> TTS（edge-tts 风格端点）开箱可用；AI 文本若返回 `502`，请在 `.env.local` 换成可用供应商（见下），**无需改代码**。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 环境变量
 
-## Learn More
+所有配置**只在服务端**读取（`src/server/env.ts` 经 Zod 校验），模板见 [`.env.example`](.env.example)：
 
-To learn more about Next.js, take a look at the following resources:
+| 变量                                            | 作用                                      | 默认                            |
+| ----------------------------------------------- | ----------------------------------------- | ------------------------------- |
+| `AI_PROVIDER`                                   | AI 适配器 id                              | `gemini-balance`（OpenAI 兼容） |
+| `AI_BASE_URL`                                   | AI 基础地址（自动拼 `/chat/completions`） | 公开测试端点                    |
+| `AI_API_KEY`                                    | AI 密钥（**必填，无默认**）               | —                               |
+| `AI_MODEL` / `AI_MAX_TOKENS` / `AI_TEMPERATURE` | 生成参数                                  | `gemini-2.0-flash` / 1000 / 0.7 |
+| `TTS_PROVIDER`                                  | TTS 适配器 id                             | `edge-tts`                      |
+| `TTS_BASE_URL`                                  | TTS 基础地址（自动拼 `/tts`、`/voices`）  | 公开端点                        |
+| `TTS_DEFAULT_VOICE`                             | 缺省语音                                  | `zh-CN-XiaoxiaoNeural`          |
+| `API_RATE_LIMIT_PER_MIN`                        | 每 IP 每分钟请求上限                      | 30                              |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`.env*` 已在 `.gitignore` 中忽略，仅 `.env.example` 入库。**旧原型里硬编码的密钥视为已泄露、已作废，本项目不复用。**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 常用脚本
 
-## Deploy on Vercel
+```bash
+pnpm dev          # 开发（Turbopack）
+pnpm build        # 生产构建
+pnpm start        # 运行构建产物
+pnpm lint         # ESLint
+pnpm typecheck    # tsc --noEmit
+pnpm test         # Vitest 单次运行
+pnpm format:check # Prettier 校验
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+提交时 `husky` + `lint-staged` 会自动 `eslint --fix` 与 `prettier --write`。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## API（同源，前端只碰这些）
+
+| 方法 | 路径           | 说明                                                                                                   |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| POST | `/api/segment` | 按 `stationId + segmentType + memory(+userInput)` 生成一段**文本**；提示词由服务端依据可信频道配置构建 |
+| POST | `/api/tts`     | 文本 → **音频字节**（LRU 缓存，按 text+voice 哈希）                                                    |
+| GET  | `/api/voices`  | 可用语音列表（缓存）                                                                                   |
+
+三个端点都做：Zod 入参校验、令牌桶限流、**错误脱敏**（只回 `{ error }`，不含上游响应/密钥/堆栈）。
+
+## 架构一览
+
+分层：`领域核心（isomorphic）` ← `服务端代理层` → `API 路由` → `前端 stores + Web Audio`。
+电台「大脑」（调度 + 上下文）在客户端，服务端保持无状态薄代理。
+完整设计、数据流与安全考量见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+```
+src/
+├─ app/            # App Router：页面 + /api/{segment,tts,voices}
+├─ components/     # Player / StationList / Visualizer / Interaction / StatusBar / ...
+├─ stores/         # zustand：usePlayerStore（传输态）· useRadioStore（电台大脑+编排）
+├─ lib/
+│  ├─ radio/       # 领域核心：types/stations/scheduler/prompt/titles/text（可单测）
+│  ├─ audio/       # Web Audio 引擎：连续队列 + AnalyserNode
+│  └─ api.ts       # 同源 API 客户端与契约类型
+└─ server/         # 代理层：env(Zod) · providers/{ai,tts} · ratelimit · cache · errors
+```
+
+## 文档
+
+- [产品需求 PRD](docs/PRD.md)
+- [架构设计 ARCHITECTURE](docs/ARCHITECTURE.md)
+- [路线图 ROADMAP](docs/ROADMAP.md)
+
+## 许可
+
+Private，暂不公开许可。
