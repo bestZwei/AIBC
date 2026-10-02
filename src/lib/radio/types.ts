@@ -4,28 +4,32 @@
  * prompts/defaultPrompts 字段不一致、存储键不一致一类问题。
  */
 
-/** 节目段类型。新增频道时若引入新类型，在此扩展联合类型即可。 */
-export type SegmentType =
-  | 'intro'
-  | 'outro'
-  | 'transition'
-  | 'userInteraction'
-  | 'news'
-  | 'commentary'
-  | 'storyBegin'
-  | 'storyMiddle'
-  | 'storyEnd'
-  | 'scienceTopic'
-  | 'scienceFact'
-  | 'dailyTopic'
-  | 'funFact'
-  | 'guestIntro'
-  | 'interviewQ1'
-  | 'interviewA1'
-  | 'interviewQ2'
-  | 'interviewA2'
-  | 'mainContent'
-  | 'secondaryContent';
+/** 节目段类型。新增频道时若引入新类型，在此扩展即可。 */
+export const SEGMENT_TYPES = [
+  'intro',
+  'outro',
+  'transition',
+  'userInteraction',
+  'news',
+  'commentary',
+  'storyBegin',
+  'storyMiddle',
+  'storyEnd',
+  'scienceTopic',
+  'scienceFact',
+  'dailyTopic',
+  'funFact',
+  'guestIntro',
+  'interviewQ1',
+  'interviewA1',
+  'interviewQ2',
+  'interviewA2',
+  'mainContent',
+  'secondaryContent',
+] as const;
+
+/** 节目段类型联合（由 SEGMENT_TYPES 派生，单一事实来源）。 */
+export type SegmentType = (typeof SEGMENT_TYPES)[number];
 
 /** 频道内容编排中的一个节目段及其出现权重。 */
 export interface Segment {
