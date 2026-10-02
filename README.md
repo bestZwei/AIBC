@@ -37,23 +37,24 @@ pnpm dev                     # http://localhost:3000
 打开页面 → 左侧选一个频道 → 点 ▶ 播放。首段会有几秒延迟（生成文本 + 合成语音），之后连续播放。
 在底部「插话」框输入问题，下一段会优先回应。
 
-> ⚠️ **需要可用的 AI 端点**：默认适配器指向公开测试端点，可能不稳定或需要你自己的 Key。
-> TTS（edge-tts 风格端点）开箱可用；AI 文本若返回 `502`，请在 `.env.local` 换成可用供应商（见下），**无需改代码**。
+> ⚠️ **需要你自己的 AI Key**：`AI_API_KEY` 无默认值、必填。默认 `AI_BASE_URL` 指向 Google AI Studio 的
+> OpenAI 兼容端点（已验证可用）；换供应商只改 `.env.local`，**无需改代码**。
+> TTS（edge-tts 风格端点）开箱可用；AI 文本若返回 `502`，见下方变量表调整即可。
 
 ## 环境变量
 
 所有配置**只在服务端**读取（`src/server/env.ts` 经 Zod 校验），模板见 [`.env.example`](.env.example)：
 
-| 变量                                            | 作用                                      | 默认                            |
-| ----------------------------------------------- | ----------------------------------------- | ------------------------------- |
-| `AI_PROVIDER`                                   | AI 适配器 id                              | `gemini-balance`（OpenAI 兼容） |
-| `AI_BASE_URL`                                   | AI 基础地址（自动拼 `/chat/completions`） | 公开测试端点                    |
-| `AI_API_KEY`                                    | AI 密钥（**必填，无默认**）               | —                               |
-| `AI_MODEL` / `AI_MAX_TOKENS` / `AI_TEMPERATURE` | 生成参数                                  | `gemini-2.0-flash` / 1000 / 0.7 |
-| `TTS_PROVIDER`                                  | TTS 适配器 id                             | `edge-tts`                      |
-| `TTS_BASE_URL`                                  | TTS 基础地址（自动拼 `/tts`、`/voices`）  | 公开端点                        |
-| `TTS_DEFAULT_VOICE`                             | 缺省语音                                  | `zh-CN-XiaoxiaoNeural`          |
-| `API_RATE_LIMIT_PER_MIN`                        | 每 IP 每分钟请求上限                      | 30                              |
+| 变量                                            | 作用                                                                           | 默认                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------- |
+| `AI_PROVIDER`                                   | 协议适配器：`openai-compatible` / `gemini-native`（详见 ARCHITECTURE 第 8 节） | `openai-compatible`                     |
+| `AI_BASE_URL`                                   | AI 基础地址（拼接规则随适配器而变）                                            | Google AI Studio OpenAI 兼容端点        |
+| `AI_API_KEY`                                    | AI 密钥（**必填，无默认**）                                                    | —                                       |
+| `AI_MODEL` / `AI_MAX_TOKENS` / `AI_TEMPERATURE` | 生成参数                                                                       | `gemini-flash-lite-latest` / 1000 / 0.7 |
+| `TTS_PROVIDER`                                  | TTS 适配器 id                                                                  | `edge-tts`                              |
+| `TTS_BASE_URL`                                  | TTS 基础地址（自动拼 `/tts`、`/voices`）                                       | LibreTTS Edge-TTS 接口                  |
+| `TTS_DEFAULT_VOICE`                             | 缺省语音                                                                       | `zh-CN-XiaoxiaoNeural`                  |
+| `API_RATE_LIMIT_PER_MIN`                        | 每 IP 每分钟请求上限                                                           | 30                                      |
 
 `.env*` 已在 `.gitignore` 中忽略，仅 `.env.example` 入库。**旧原型里硬编码的密钥视为已泄露、已作废，本项目不复用。**
 

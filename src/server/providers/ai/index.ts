@@ -1,12 +1,14 @@
 import { getEnv } from '../../env';
 import { AppError } from '../../errors';
-import { GeminiBalanceProvider } from './gemini-balance';
+import { GeminiNativeProvider } from './gemini-native';
+import { OpenAiCompatibleProvider } from './openai-compatible';
 import type { AiProvider } from './types';
 
 export type { AiProvider, GenerateTextOptions } from './types';
 
 const registry = new Map<string, () => AiProvider>([
-  ['gemini-balance', () => new GeminiBalanceProvider()],
+  ['openai-compatible', () => new OpenAiCompatibleProvider()],
+  ['gemini-native', () => new GeminiNativeProvider()],
 ]);
 
 let instance: AiProvider | null = null;

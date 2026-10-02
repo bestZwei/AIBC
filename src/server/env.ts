@@ -7,15 +7,15 @@ import { z } from 'zod';
  * 这样 `next build` 在没有配置密钥的环境下依然能通过（不会在导入期抛错）。
  */
 const EnvSchema = z.object({
-  AI_PROVIDER: z.string().min(1).default('gemini-balance'),
-  AI_BASE_URL: z.string().url().default('https://gemini-balance.neko.is-cool.dev/v1'),
+  AI_PROVIDER: z.string().min(1).default('openai-compatible'),
+  AI_BASE_URL: z.string().url().default('https://generativelanguage.googleapis.com/v1beta/openai'),
   AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
-  AI_MODEL: z.string().min(1).default('gemini-2.0-flash'),
+  AI_MODEL: z.string().min(1).default('gemini-flash-lite-latest'),
   AI_MAX_TOKENS: z.coerce.number().int().positive().default(1000),
   AI_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.7),
 
   TTS_PROVIDER: z.string().min(1).default('edge-tts'),
-  TTS_BASE_URL: z.string().url().default('https://tts.ciallo.de/api'),
+  TTS_BASE_URL: z.string().url().default('https://libretts.is-an.org/api'),
   TTS_DEFAULT_VOICE: z.string().min(1).default('zh-CN-XiaoxiaoNeural'),
 
   API_RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(30),

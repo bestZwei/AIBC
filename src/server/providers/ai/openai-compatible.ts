@@ -17,11 +17,12 @@ const ChatCompletionResponse = z.object({
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
- * 默认 AI 适配器：任何 OpenAI 兼容的 chat/completions 端点。
- * 端点与密钥全部来自服务端 env，绝不出现在前端。
+ * 通用 AI 适配器：任何 OpenAI 兼容的 chat/completions 端点（OpenAI、Google AI
+ * Studio 的 /v1beta/openai、DeepSeek、自建网关……）。具体供应商由
+ * AI_BASE_URL + AI_API_KEY + AI_MODEL 决定，端点与密钥全来自服务端 env，绝不出现在前端。
  */
-export class GeminiBalanceProvider implements AiProvider {
-  readonly id = 'gemini-balance';
+export class OpenAiCompatibleProvider implements AiProvider {
+  readonly id = 'openai-compatible';
 
   async generateText(options: GenerateTextOptions): Promise<string> {
     const env = getEnv();

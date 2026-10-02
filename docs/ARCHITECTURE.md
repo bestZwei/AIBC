@@ -108,12 +108,15 @@ pump(): while(looping && bufferedCount<3) generateOne()
 ## 8. 供应商适配层（如何加新供应商）
 
 ```
-providers/ai/types.ts   interface AiProvider { id; generateText(opts): Promise<string> }
-providers/ai/gemini-balance.ts   // OpenAI 兼容 /chat/completions，读 env
-providers/ai/index.ts            // registry Map + getAiProvider()（按 env.AI_PROVIDER，单例）
+providers/ai/types.ts             interface AiProvider { id; generateText(opts): Promise<string> }
+providers/ai/openai-compatible.ts // 任何 OpenAI 兼容端点：POST {base}/chat/completions + Bearer
+providers/ai/gemini-native.ts     // Google 原生：POST {base}/models/{model}:generateContent + x-goog-api-key
+providers/ai/index.ts             // registry Map + getAiProvider()（按 env.AI_PROVIDER，单例）
 ```
 
-加 OpenAI/Azure：**新增一个实现 `AiProvider` 的类** → 在 `index.ts` registry 注册一行 → 设 `AI_PROVIDER=openai`。业务与前端零改动。TTS 同构（`TtsProvider`：`synthesize` + `listVoices`）。
+`AI_PROVIDER` 选的是**协议**，供应商本身由 `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL` 决定，所以同一个 Key 可以走两种协议；`gemini-native` 会忽略 `AI_BASE_URL` 末尾的 `/openai`，切换只改一个变量。
+
+加新供应商（Azure/Anthropic/…）：**新增一个实现 `AiProvider` 的类**（解析它自己的响应结构，统一 `trim()` 后返回纯文本）→ 在 `index.ts` registry 注册一行 → 设 `AI_PROVIDER=<新 id>`。业务与前端零改动。TTS 同构（`TtsProvider`：`synthesize` + `listVoices`）。
 
 ## 9. 安全考量
 
